@@ -1,2 +1,1 @@
-web: python app.py
-queue: python Classifier.py
+web: gunicorn app:app --log-file=-
