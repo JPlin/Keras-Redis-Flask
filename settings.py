@@ -1,3 +1,5 @@
+import os
+PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 # initialize app config
 SECRET_KEY = '123456'
 UPLOAD_FOLDER = 'data/'
