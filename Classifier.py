@@ -6,12 +6,13 @@ import numpy as np
 import redis
 import time
 import json
-
+import os
 from lib import tool
 import settings
 
-db = redis.StrictRedis(host=settings.REDIS_HOST,
-                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
+# db = redis.StrictRedis(host=settings.REDIS_HOST,
+#                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
+db = redis.from_url(os.environ.get("REDIS_URL"))
 
 
 class Classifier:

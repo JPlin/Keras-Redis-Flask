@@ -150,6 +150,7 @@ def classifier_predict():
             k = str(uuid.uuid4())
             d = {"id": k, "image": tool.base64_encode_image(image)}
             db.rpush(settings.C_IMAGE_QUEUE, json.dumps(d))
+            print('push image : ', k)
 
             # keep looping until our model server returns the output
             # predictions
@@ -164,7 +165,7 @@ def classifier_predict():
                     # dictionary so we can return it to the client
                     output = output.decode("utf-8")
                     data["predictions"] = json.loads(output)
-
+                    print('get result :', k)
                     # delete the result from the database and break
                     # from the polling loop
                     db.delete(k)
