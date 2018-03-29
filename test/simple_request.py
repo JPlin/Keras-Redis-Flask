@@ -6,7 +6,8 @@ import requests
 
 # initialize the Keras REST API endpoint URL along with the input
 # image path
-KERAS_REST_API_URL = "http://localhost:9191/classify"
+#KERAS_REST_API_URL = "http://localhost:9191/classify"
+KERAS_REST_API_URL = "https://paringweb.herokuapp.com/classify"
 IMAGE_PATH = "data/jemma.png"
 
 # load the input image and construct the payload for the request

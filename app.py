@@ -36,8 +36,9 @@ app.config['UPLOAD_FOLDER'] = settings.UPLOAD_FOLDER
 app.config['THUMBNAIL_FOLDER'] = settings.THUMBNAIL_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = settings.MAX_CONTENT_LENGTH
 bootstrap = Bootstrap(app)
-db = redis.StrictRedis(host=settings.REDIS_HOST,
-                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
+# db = redis.StrictRedis(host=settings.REDIS_HOST,
+#                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
+db = redis.from_url(os.environ.get("REDIS_URL"))
 
 
 @app.route("/upload", methods=['GET', 'POST'])
