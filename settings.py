@@ -2,8 +2,8 @@ import os
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 # initialize app config
 SECRET_KEY = '123456'
-UPLOAD_FOLDER = 'static/data/'
-THUMBNAIL_FOLDER = 'static/data/thumbnail/'
+UPLOAD_FOLDER = os.path.join(PROJECT_PATH , 'static/data/')
+THUMBNAIL_FOLDER = os.path.join(PROJECT_PATH , 'static/data/thumbnail/')
 MAX_CONTENT_LENGTH = 50 * 1024 * 1024
 ALLOWED_EXTENSIONS = set(['txt', 'gif', 'png', 'jpg',
                           'jpeg', 'bmp', 'rar', 'zip', '7zip', 'doc', 'docx'])
@@ -20,9 +20,9 @@ C_IMAGE_WIDTH = 224
 C_IMAGE_HEIGHT = 224
 C_IMAGE_CHANS = 3
 C_IMAGE_DTYPE = "float32"
-INDEX_PATH = 'model/classifier/imagenet_class_index.json'
-SCORE_PATH = 'static/data/score.json'
-C_WEIGHT_PATH = 'model/classifier/resnet50_weights_tf_dim_ordering_tf_kernels.h5'
+INDEX_PATH = os.path.join(PROJECT_PATH , 'model/classifier/imagenet_class_index.json')
+SCORE_PATH = os.path.join(PROJECT_PATH , 'static/data/score.json')
+C_WEIGHT_PATH = os.path.join(PROJECT_PATH , 'model/classifier/resnet50_weights_tf_dim_ordering_tf_kernels.h5')
 
 # initialize constants used to control parser image spatial dimensions and data type
 P_IMAGE_WIDTH = 512
