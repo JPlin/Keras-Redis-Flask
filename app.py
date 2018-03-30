@@ -36,10 +36,9 @@ app.config['UPLOAD_FOLDER'] = settings.UPLOAD_FOLDER
 app.config['THUMBNAIL_FOLDER'] = settings.THUMBNAIL_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = settings.MAX_CONTENT_LENGTH
 bootstrap = Bootstrap(app)
-db = redis.StrictRedis(host=settings.REDIS_HOST,
-                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
-#db = redis.from_url(os.environ.get("REDIS_URL"))
-classifier = Classifier(db)
+#db = redis.StrictRedis(host=settings.REDIS_HOST,
+#                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
+db = redis.from_url(os.environ.get("REDIS_URL"))
 
 @app.route("/upload", methods=['GET', 'POST'])
 def upload():
@@ -65,7 +64,26 @@ def upload():
                 # classify the image
                 im = Image.open(uploaded_file_path)
                 image = Classifier.prepare_image(im , (settings.C_IMAGE_WIDTH, settings.C_IMAGE_HEIGHT))
-                score = classifier.one_image_classify(image)
+                # predict the score
+                image = image.copy(order="C")
+
+                k = str(uuid.uuid4())
+                d = {"id": k, "image": tool.base64_encode_image(image)}
+                db.rpush(settings.C_IMAGE_QUEUE, json.dumps(d))
+                print('push image : ', k)
+
+                while True:
+                    output = db.get(k)
+
+                    if output is not None:
+                        output = output.decode("utf-8")
+                        score = json.loads(output)
+                        print('get result :', k)
+                        db.delete(k)
+                        break
+
+                    time.sleep(settings.CLIENT_SLEEP)
+
                 with open(settings.SCORE_PATH , 'r') as f:
                     model = json.load(f)
                 model[filename] = score

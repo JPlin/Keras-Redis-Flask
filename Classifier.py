@@ -11,9 +11,9 @@ import os
 from lib import tool
 import settings
 
-db = redis.StrictRedis(host=settings.REDIS_HOST,
-                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
-#db = redis.from_url(os.environ.get("REDIS_URL"))
+#db = redis.StrictRedis(host=settings.REDIS_HOST,
+#                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
+db = redis.from_url(os.environ.get("REDIS_URL"))
 
 
 class Classifier:
