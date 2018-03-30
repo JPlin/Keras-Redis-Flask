@@ -81,11 +81,13 @@ def upload():
 
                     time.sleep(settings.CLIENT_SLEEP)
 
-                with open(settings.SCORE_PATH , 'r') as f:
-                    model = json.load(f)
+                f = open(settings.SCORE_PATH , 'r')
+                model = json.load(f)
+                f.close()
                 model[filename] = score
-                with open(settings.SCORE_PATH , 'w') as f:
-                    f.write(json.dumps(model))
+                f = open(settings.SCORE_PATH , 'w')
+                f.write(json.dumps(model))
+                f.close()
 
                 # create thumbnail after saving
                 if mime_type.startswith('image'):
@@ -155,8 +157,9 @@ def index():
 def gallary():
     try:
         print('i am ok 0')
-        with open(settings.SCORE_PATH , 'r') as f:
-            scores = json.load(f)    
+        f = open(settings.SCORE_PATH , 'r')
+        scores = json.load(f)
+        f.close()
         print('i am ok 1')
         files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
         os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
