@@ -1,4 +1,6 @@
 import os
+import redis
+
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 # initialize app config
 SECRET_KEY = '123456'
@@ -14,6 +16,9 @@ IGNORED_FILES = set(['.gitignore' , 'score.json'])
 REDIS_HOST = "localhost"
 REDIS_PORT = "6379"
 REDIS_DB = 0
+#db = redis.StrictRedis(host=REDIS_HOST,
+#                       port=REDIS_PORT, db=REDIS_DB)
+db = redis.from_url(os.environ.get("REDIS_URL"))
 
 # initialize constants used to control classifier image spatial dimensions and data type
 C_IMAGE_WIDTH = 224

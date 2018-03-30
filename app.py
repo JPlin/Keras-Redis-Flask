@@ -36,9 +36,6 @@ app.config['UPLOAD_FOLDER'] = settings.UPLOAD_FOLDER
 app.config['THUMBNAIL_FOLDER'] = settings.THUMBNAIL_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = settings.MAX_CONTENT_LENGTH
 bootstrap = Bootstrap(app)
-db = redis.StrictRedis(host=settings.REDIS_HOST,
-                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
-#db = redis.from_url(os.environ.get("REDIS_URL"))
 
 @app.route("/upload", methods=['GET', 'POST'])
 def upload():
@@ -69,17 +66,17 @@ def upload():
 
                 k = str(uuid.uuid4())
                 d = {"id": k, "image": tool.base64_encode_image(image)}
-                db.rpush(settings.C_IMAGE_QUEUE, json.dumps(d))
+                settings.db.rpush(settings.C_IMAGE_QUEUE, json.dumps(d))
                 print('push image : ', k)
 
                 while True:
-                    output = db.get(k)
+                    output = settings.db.get(k)
 
                     if output is not None:
                         output = output.decode("utf-8")
                         score = json.loads(output)
                         print('get result :', k)
-                        db.delete(k)
+                        settings.db.delete(k)
                         break
 
                     time.sleep(settings.CLIENT_SLEEP)
@@ -156,26 +153,31 @@ def index():
 
 @app.route('/gallary' , methods=['GET' , 'POST'])
 def gallary():
-    with open(settings.SCORE_PATH , 'r') as f:
-        scores = json.load(f)    
-    files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
-    os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
+    try:
+        print('i am ok 0')
+        with open(settings.SCORE_PATH , 'r') as f:
+            scores = json.load(f)    
+        print('i am ok 1')
+        files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
+        os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
 
-    file_display = []
-    file_score = {}
-
-    for f in files:
-        size = os.path.getsize(os.path.join(
-            app.config['UPLOAD_FOLDER'], f))
-        file_saved = uploadfile(name=f, size=size)
-        file_display.append(file_saved)
-
-        score_string = ""
-        for i, score in enumerate(scores[f]):
-            score_string += "{}.{} : {:.4f}% </br>".format(i+1 , score['label'] , score['probability'] * 100)
-        file_score[f] = score_string
-
-    return render_template('gallary.html' , images = file_display , scores = file_score)
+        file_display = []
+        file_score = {}
+        print('i am ok 2')
+        for f in files:
+            size = os.path.getsize(os.path.join(
+                app.config['UPLOAD_FOLDER'], f))
+            file_saved = uploadfile(name=f, size=size)
+            file_display.append(file_saved)
+            print('i am ok 3')
+            score_string = ""
+            for i, score in enumerate(scores[f]):
+                score_string += "{}.{} : {:.4f}% </br>".format(i+1 , score['label'] , score['probability'] * 100)
+            file_score[f] = score_string
+        print('i am ok 4')
+        return render_template('gallary.html' , images = file_display , scores = file_score)
+    except e:
+        print(e.message)
 
 @app.route('/video' , methods=['GET' , 'POST'])
 def video():
@@ -203,14 +205,14 @@ def classifier_predict():
             # classification ID + image to the queue
             k = str(uuid.uuid4())
             d = {"id": k, "image": tool.base64_encode_image(image)}
-            db.rpush(settings.C_IMAGE_QUEUE, json.dumps(d))
+            settings.db.rpush(settings.C_IMAGE_QUEUE, json.dumps(d))
             print('push image : ', k)
 
             # keep looping until our model server returns the output
             # predictions
             while True:
                 # attempt to grab the output predictions
-                output = db.get(k)
+                output = settings.db.get(k)
 
                 # check to see if our model has classified the input
                 # image
@@ -222,7 +224,7 @@ def classifier_predict():
                     print('get result :', k)
                     # delete the result from the database and break
                     # from the polling loop
-                    db.delete(k)
+                    settings.db.delete(k)
                     break
 
                 # sleep for a small amount to give the model a chance

@@ -11,10 +11,6 @@ import os
 from lib import tool
 import settings
 
-db = redis.StrictRedis(host=settings.REDIS_HOST,
-                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
-#db = redis.from_url(os.environ.get("REDIS_URL"))
-
 
 class Classifier:
     def __init__(self, db):
@@ -114,5 +110,5 @@ class Classifier:
 # if this is the main thread of execution start the model server process
 if __name__ == '__main__':
     print("* Starting model service...")
-    classfier = Classifier(db)
+    classfier = Classifier(settings.db)
     classfier.batch_image_classify()
