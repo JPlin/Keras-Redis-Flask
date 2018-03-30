@@ -2,6 +2,7 @@
 from keras.applications import ResNet50
 from keras.preprocessing.image import img_to_array
 from keras.applications import imagenet_utils
+import tensorflow
 import numpy as np
 import redis
 import time
@@ -10,15 +11,21 @@ import os
 from lib import tool
 import settings
 
-# db = redis.StrictRedis(host=settings.REDIS_HOST,
-#                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
-db = redis.from_url(os.environ.get("REDIS_URL"))
+db = redis.StrictRedis(host=settings.REDIS_HOST,
+                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
+#db = redis.from_url(os.environ.get("REDIS_URL"))
 
 
 class Classifier:
     def __init__(self, db):
         self.db = db
-        self.model = None
+        # load the pre-trained Keras model (here we are using a model
+        # pre-trained on ImageNet and provided by Keras, but you can
+        # substitute in your own networks just as easily)
+        print("* Loading model...")
+        self.model = ResNet50(weights=settings.C_WEIGHT_PATH)
+        self.graph = tensorflow.get_default_graph()
+        print("* Model loaded")
 
     @staticmethod
     def prepare_image(image, target):
@@ -34,14 +41,20 @@ class Classifier:
 
         # return the processed image
         return image
+    
+    def one_image_classify(self , image):
+        image = image.reshape((1, settings.C_IMAGE_HEIGHT, settings.C_IMAGE_WIDTH, settings.C_IMAGE_CHANS))
+        print("image.shape " , image.shape)
+        with self.graph.as_default():
+            preds = self.model.predict(image)
+        results = imagenet_utils.decode_predictions(preds)
+        outputs = []
+        for ( _ , label , prob) in results[0]:
+            r = {"label": label, "probability": float(prob)}
+            outputs.append(r)
+        return outputs
 
-    def classify_process(self):
-        # load the pre-trained Keras model (here we are using a model
-        # pre-trained on ImageNet and provided by Keras, but you can
-        # substitute in your own networks just as easily)
-        print("* Loading model...")
-        self.model = ResNet50(weights=settings.C_WEIGHT_PATH)
-        print("* Model loaded")
+    def batch_image_classify(self):
         # continually pool for new images to classify
         while True:
             # attempt to grab a batch of images from the database, then
@@ -102,4 +115,4 @@ class Classifier:
 if __name__ == '__main__':
     print("* Starting model service...")
     classfier = Classifier(db)
-    classfier.classify_process()
+    classfier.batch_image_classify()

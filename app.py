@@ -36,10 +36,10 @@ app.config['UPLOAD_FOLDER'] = settings.UPLOAD_FOLDER
 app.config['THUMBNAIL_FOLDER'] = settings.THUMBNAIL_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = settings.MAX_CONTENT_LENGTH
 bootstrap = Bootstrap(app)
-# db = redis.StrictRedis(host=settings.REDIS_HOST,
-#                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
-db = redis.from_url(os.environ.get("REDIS_URL"))
-
+db = redis.StrictRedis(host=settings.REDIS_HOST,
+                       port=settings.REDIS_PORT, db=settings.REDIS_DB)
+#db = redis.from_url(os.environ.get("REDIS_URL"))
+classifier = Classifier(db)
 
 @app.route("/upload", methods=['GET', 'POST'])
 def upload():
@@ -61,6 +61,16 @@ def upload():
                 uploaded_file_path = os.path.join(
                     app.config['UPLOAD_FOLDER'], filename)
                 files.save(uploaded_file_path)
+
+                # classify the image
+                im = Image.open(uploaded_file_path)
+                image = Classifier.prepare_image(im , (settings.C_IMAGE_WIDTH, settings.C_IMAGE_HEIGHT))
+                score = classifier.one_image_classify(image)
+                with open(settings.SCORE_PATH , 'r') as f:
+                    model = json.load(f)
+                model[filename] = score
+                with open(settings.SCORE_PATH , 'w') as f:
+                    f.write(json.dumps(model))
 
                 # create thumbnail after saving
                 if mime_type.startswith('image'):
@@ -126,6 +136,32 @@ def get_file(filename):
 def index():
     return render_template('index.html')
 
+@app.route('/gallary' , methods=['GET' , 'POST'])
+def gallary():
+    with open(settings.SCORE_PATH , 'r') as f:
+        scores = json.load(f)    
+    files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
+    os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
+
+    file_display = []
+    file_score = {}
+
+    for f in files:
+        size = os.path.getsize(os.path.join(
+            app.config['UPLOAD_FOLDER'], f))
+        file_saved = uploadfile(name=f, size=size)
+        file_display.append(file_saved)
+
+        score_string = ""
+        for i, score in enumerate(scores[f]):
+            score_string += "{}.{} : {:.4f}% </br>".format(i+1 , score['label'] , score['probability'] * 100)
+        file_score[f] = score_string
+
+    return render_template('gallary.html' , images = file_display , scores = file_score)
+
+@app.route('/video' , methods=['GET' , 'POST'])
+def video():
+    return render_template('video.html')
 
 @app.route("/classify", methods=["POST"])
 def classifier_predict():
