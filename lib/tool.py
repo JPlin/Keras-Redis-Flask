@@ -41,7 +41,7 @@ def create_thumbnail(image, UPLOAD_FOLDER, THUMBNAIL_FOLDER):
         w_percent = (base_width / float(img.size[0]))
         h_size = int((float(img.size[1]) * float(w_percent)))
         img = img.resize((base_width, h_size), PIL.Image.ANTIALIAS)
-        img.save(os.path.join(THUMBNAIL_FOLDER, image))
+        img.save(os.path.join(THUMBNAIL_FOLDER, 'tumb_' + image))
         return True
 
     except:

@@ -1,5 +1,10 @@
 {
     "editor.formatOnPaste": false,
     "editor.formatOnSave": false,
-    "editor.formatOnType": false
+    "editor.formatOnType": false,
+    // python specific
+    "python.pythonPath":"D:\\Anaconda\\python.exe",
+    "python.autoComplete.extraPaths": [
+        "D:/Anaconda/envs/tensorflow/Lib/site-packages"
+    ]
 }

@@ -25,6 +25,7 @@ from flask import Flask, request, render_template, redirect, url_for, send_from_
 from flask_bootstrap import Bootstrap
 from werkzeug import secure_filename
 
+from lib.S3_lib import *
 from lib.upload_file import uploadfile
 from lib import tool
 from Classifier import Classifier
@@ -32,11 +33,11 @@ import settings
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = settings.SECRET_KEY
-app.config['UPLOAD_FOLDER'] = settings.UPLOAD_FOLDER
-app.config['THUMBNAIL_FOLDER'] = settings.THUMBNAIL_FOLDER
+app.config['UPLOAD_FOLDER'] = settings.TEMP_FOLDER 
+app.config['THUMBNAIL_FOLDER'] = settings.TEMP_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = settings.MAX_CONTENT_LENGTH
 bootstrap = Bootstrap(app)
-
+s3 = s3_client()
 @app.route("/upload", methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
@@ -57,6 +58,7 @@ def upload():
                 uploaded_file_path = os.path.join(
                     app.config['UPLOAD_FOLDER'], filename)
                 files.save(uploaded_file_path)
+                s3_upload_file(s3 , settings.IMAGE_BUCKET , filename ,    app.config['UPLOAD_FOLDER'] + filename)
 
                 # classify the image
                 im = Image.open(uploaded_file_path)
@@ -81,19 +83,22 @@ def upload():
 
                     time.sleep(settings.CLIENT_SLEEP)
 
-                f = open(settings.SCORE_PATH , 'r')
+                s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')
+                f = open(app.config['UPLOAD_FOLDER'] + 'score.json', 'r')
                 model = json.load(f)
                 f.close()
                 model[filename] = score
-                f = open(settings.SCORE_PATH , 'w')
+                f = open(app.config['UPLOAD_FOLDER'] + 'score.json' , 'w')
                 f.write(json.dumps(model))
                 f.close()
+                s3_upload_file(s3 , settings.OTHER_BUCKET , 'score.json' ,    app.config['UPLOAD_FOLDER'] + 'score.json')                
 
                 # create thumbnail after saving
                 if mime_type.startswith('image'):
                     tool.create_thumbnail(
                         filename, app.config['UPLOAD_FOLDER'], app.config['THUMBNAIL_FOLDER']
                     )
+                    s3_upload_file(s3 , settings.THUMBNAIL_BUCKET , 'tumb_'+filename , app.config['THUMBNAIL_FOLDER'] + 'tumb_'+filename)
 
                 # get file size after saving
                 size = os.path.getsize(uploaded_file_path)
@@ -104,16 +109,13 @@ def upload():
             return simplejson.dumps({"files": [result.get_file()]})
 
     if request.method == 'GET':
-        # get all file in ./data directory
-        files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
-            os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
+        # files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
+        #     os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
+        files = [f for f in get_listfiles(s3 ,settings.IMAGE_BUCKET) if f[0] not in settings.IGNORED_FILES]
 
         file_display = []
-
-        for f in files:
-            size = os.path.getsize(os.path.join(
-                app.config['UPLOAD_FOLDER'], f))
-            file_saved = uploadfile(name=f, size=size)
+        for name , size in files:
+            file_saved = uploadfile(name=name, size=size)
             file_display.append(file_saved.get_file())
 
         return simplejson.dumps({"files": file_display})
@@ -123,19 +125,19 @@ def upload():
 
 @app.route("/delete/<string:filename>", methods=['DELETE'])
 def delete(filename):
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file_thumb_path = os.path.join(app.config['THUMBNAIL_FOLDER'], filename)
+    #file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    #file_thumb_path = os.path.join(app.config['THUMBNAIL_FOLDER'], filename)
+    file_s3_path = get_url(settings.IMAGE_BUCKET , filename)
+    file_s3_tumb_path = get_url(settings.THUMBNAIL_BUCKET , 'tumb_'+filename)
 
-    if os.path.exists(file_path):
-        try:
-            os.remove(file_path)
-
-            if os.path.exists(file_thumb_path):
-                os.remove(file_thumb_path)
-
-            return simplejson.dumps({filename: 'True'})
-        except:
-            return simplejson.dumps({filename: 'False'})
+    #try:
+    s3_delete_file(s3 , settings.IMAGE_BUCKET , filename)
+    print(f'delete {file_s3_path}')
+    s3_delete_file(s3 , settings.THUMBNAIL_BUCKET , 'tumb_'+filename)
+    print(f'delete{file_s3_tumb_path}')
+    return simplejson.dumps({filename: 'True'})
+    #except:
+    #    return simplejson.dumps({filename: 'False'})
 
 
 # serve static files
@@ -157,30 +159,31 @@ def index():
 def gallary():
     try:
         print('i am ok 0')
-        f = open(settings.SCORE_PATH , 'r')
+        s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')        
+        f = open(app.config['UPLOAD_FOLDER'] + 'score.json' , 'r')
+        print('i am fucked')
         scores = json.load(f)
         f.close()
         print('i am ok 1')
-        files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
-        os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
+        # files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
+        # os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
+        files = [f for f in get_listfiles(s3 ,settings.IMAGE_BUCKET) if f[0] not in settings.IGNORED_FILES]
 
         file_display = []
         file_score = {}
         print('i am ok 2')
-        for f in files:
-            size = os.path.getsize(os.path.join(
-                app.config['UPLOAD_FOLDER'], f))
-            file_saved = uploadfile(name=f, size=size)
-            file_display.append(file_saved)
-            print('i am ok 3')
+        for name , size in files:
+            file_saved = uploadfile(name=name, size=size)
+            print(file_saved.get_file())
+            file_display.append(file_saved.get_file())
             score_string = ""
-            for i, score in enumerate(scores[f]):
+            for i, score in enumerate(scores[name]):
                 score_string += "{}.{} : {:.4f}% </br>".format(i+1 , score['label'] , score['probability'] * 100)
-            file_score[f] = score_string
-        print('i am ok 4')
+            file_score[name] = score_string
+        print('i am ok 3')
         return render_template('gallary.html' , images = file_display , scores = file_score)
-    except e:
-        print(e.message)
+    except Exception as e:
+        print(e)
 
 @app.route('/video' , methods=['GET' , 'POST'])
 def video():
