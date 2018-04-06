@@ -1,5 +1,5 @@
 import os
-import store as S3_lib
+from . import store as S3_lib
 
 class uploadfile():
     def __init__(self, name, type=None, size=None, not_allowed_msg=''):

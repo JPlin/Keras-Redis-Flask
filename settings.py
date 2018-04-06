@@ -4,7 +4,7 @@ import redis
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 # initialize app config
 SECRET_KEY = '123456'
-TEMP_FOLDER = os.path.join('tmp/')
+TEMP_FOLDER = os.path.join('/tmp/')
 UPLOAD_FOLDER = os.path.join(PROJECT_PATH , '/tmp/')
 THUMBNAIL_FOLDER = os.path.join(PROJECT_PATH , '/tmp/')
 MAX_CONTENT_LENGTH = 50 * 1024 * 1024
