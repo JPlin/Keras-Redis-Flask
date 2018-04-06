@@ -25,9 +25,9 @@ from flask import Flask, request, render_template, redirect, url_for, send_from_
 from flask_bootstrap import Bootstrap
 from werkzeug import secure_filename
 
-from lib.S3_lib import *
-from lib.upload_file import uploadfile
 from lib import tool
+from lib.upload_file import uploadfile
+from lib import store as S3_lib
 from Classifier import Classifier
 import settings
 
@@ -37,7 +37,7 @@ app.config['UPLOAD_FOLDER'] = settings.TEMP_FOLDER
 app.config['THUMBNAIL_FOLDER'] = settings.TEMP_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = settings.MAX_CONTENT_LENGTH
 bootstrap = Bootstrap(app)
-s3 = s3_client()
+s3 = S3_lib.s3_client()
 @app.route("/upload", methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
@@ -58,7 +58,7 @@ def upload():
                 uploaded_file_path = os.path.join(
                     app.config['UPLOAD_FOLDER'], filename)
                 files.save(uploaded_file_path)
-                s3_upload_file(s3 , settings.IMAGE_BUCKET , filename ,    app.config['UPLOAD_FOLDER'] + filename)
+                S3_lib.s3_upload_file(s3 , settings.IMAGE_BUCKET , filename ,    app.config['UPLOAD_FOLDER'] + filename)
 
                 # classify the image
                 im = Image.open(uploaded_file_path)
@@ -83,7 +83,7 @@ def upload():
 
                     time.sleep(settings.CLIENT_SLEEP)
 
-                s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')
+                S3_lib.s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')
                 f = open(app.config['UPLOAD_FOLDER'] + 'score.json', 'r')
                 model = json.load(f)
                 f.close()
@@ -91,14 +91,14 @@ def upload():
                 f = open(app.config['UPLOAD_FOLDER'] + 'score.json' , 'w')
                 f.write(json.dumps(model))
                 f.close()
-                s3_upload_file(s3 , settings.OTHER_BUCKET , 'score.json' ,    app.config['UPLOAD_FOLDER'] + 'score.json')                
+                S3_lib.s3_upload_file(s3 , settings.OTHER_BUCKET , 'score.json' ,    app.config['UPLOAD_FOLDER'] + 'score.json')                
 
                 # create thumbnail after saving
                 if mime_type.startswith('image'):
                     tool.create_thumbnail(
                         filename, app.config['UPLOAD_FOLDER'], app.config['THUMBNAIL_FOLDER']
                     )
-                    s3_upload_file(s3 , settings.THUMBNAIL_BUCKET , 'tumb_'+filename , app.config['THUMBNAIL_FOLDER'] + 'tumb_'+filename)
+                    S3_lib.s3_upload_file(s3 , settings.THUMBNAIL_BUCKET , 'tumb_'+filename , app.config['THUMBNAIL_FOLDER'] + 'tumb_'+filename)
 
                 # get file size after saving
                 size = os.path.getsize(uploaded_file_path)
@@ -111,7 +111,7 @@ def upload():
     if request.method == 'GET':
         # files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
         #     os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
-        files = [f for f in get_listfiles(s3 ,settings.IMAGE_BUCKET) if f[0] not in settings.IGNORED_FILES]
+        files = [f for f in S3_lib.get_listfiles(s3 ,settings.IMAGE_BUCKET) if f[0] not in settings.IGNORED_FILES]
 
         file_display = []
         for name , size in files:
@@ -127,13 +127,13 @@ def upload():
 def delete(filename):
     #file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     #file_thumb_path = os.path.join(app.config['THUMBNAIL_FOLDER'], filename)
-    file_s3_path = get_url(settings.IMAGE_BUCKET , filename)
-    file_s3_tumb_path = get_url(settings.THUMBNAIL_BUCKET , 'tumb_'+filename)
+    file_s3_path = S3_lib.get_url(settings.IMAGE_BUCKET , filename)
+    file_s3_tumb_path = S3_lib.get_url(settings.THUMBNAIL_BUCKET , 'tumb_'+filename)
 
     #try:
-    s3_delete_file(s3 , settings.IMAGE_BUCKET , filename)
+    S3_lib.s3_delete_file(s3 , settings.IMAGE_BUCKET , filename)
     print(f'delete {file_s3_path}')
-    s3_delete_file(s3 , settings.THUMBNAIL_BUCKET , 'tumb_'+filename)
+    S3_lib.s3_delete_file(s3 , settings.THUMBNAIL_BUCKET , 'tumb_'+filename)
     print(f'delete{file_s3_tumb_path}')
     return simplejson.dumps({filename: 'True'})
     #except:
@@ -159,7 +159,7 @@ def index():
 def gallary():
     try:
         print('i am ok 0')
-        s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')        
+        S3_lib.s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')        
         f = open(app.config['UPLOAD_FOLDER'] + 'score.json' , 'r')
         print('i am fucked')
         scores = json.load(f)
@@ -167,7 +167,7 @@ def gallary():
         print('i am ok 1')
         # files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
         # os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
-        files = [f for f in get_listfiles(s3 ,settings.IMAGE_BUCKET) if f[0] not in settings.IGNORED_FILES]
+        files = [f for f in S3_lib.get_listfiles(s3 ,settings.IMAGE_BUCKET) if f[0] not in settings.IGNORED_FILES]
 
         file_display = []
         file_score = {}

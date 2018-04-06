@@ -22,7 +22,7 @@ REDIS_HOST = "localhost"
 REDIS_PORT = "6379"
 REDIS_DB = 0
 #db = redis.StrictRedis(host=REDIS_HOST,
-                       port=REDIS_PORT, db=REDIS_DB)
+#                       port=REDIS_PORT, db=REDIS_DB)
 db = redis.from_url(os.environ.get("REDIS_URL"))
 
 # initialize constants used to control classifier image spatial dimensions and data type
