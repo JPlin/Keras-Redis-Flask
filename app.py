@@ -58,7 +58,6 @@ def upload():
                 uploaded_file_path = os.path.join(
                     app.config['UPLOAD_FOLDER'], filename)
                 files.save(uploaded_file_path)
-                S3_lib.s3_upload_file(s3 , settings.IMAGE_BUCKET , filename ,    app.config['UPLOAD_FOLDER'] + filename)
 
                 # classify the image
                 im = Image.open(uploaded_file_path)
@@ -83,6 +82,7 @@ def upload():
 
                     time.sleep(settings.CLIENT_SLEEP)
 
+                S3_lib.s3_upload_file(s3 , settings.IMAGE_BUCKET , filename ,    app.config['UPLOAD_FOLDER'] + filename)
                 S3_lib.s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')
                 f = open(app.config['UPLOAD_FOLDER'] + 'score.json', 'r')
                 model = json.load(f)
@@ -158,20 +158,16 @@ def index():
 @app.route('/gallary' , methods=['GET' , 'POST'])
 def gallary():
     try:
-        print('i am ok 0')
         S3_lib.s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')        
         f = open(app.config['UPLOAD_FOLDER'] + 'score.json' , 'r')
-        print('i am fucked')
         scores = json.load(f)
         f.close()
-        print('i am ok 1')
         # files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
         # os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
         files = [f for f in S3_lib.get_listfiles(s3 ,settings.IMAGE_BUCKET) if f[0] not in settings.IGNORED_FILES]
 
         file_display = []
         file_score = {}
-        print('i am ok 2')
         for name , size in files:
             file_saved = uploadfile(name=name, size=size)
             print(file_saved.get_file())
@@ -180,7 +176,6 @@ def gallary():
             for i, score in enumerate(scores[name]):
                 score_string += "{}.{} : {:.4f}% </br>".format(i+1 , score['label'] , score['probability'] * 100)
             file_score[name] = score_string
-        print('i am ok 3')
         return render_template('gallary.html' , images = file_display , scores = file_score)
     except Exception as e:
         print(e)
