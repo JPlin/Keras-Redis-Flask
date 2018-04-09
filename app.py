@@ -208,7 +208,6 @@ def gallary():
     return render_template('gallary.html' , images = file_display , scores = file_score)
     #except Exception as e:
     #    print(e)
-
 @app.route('/video' , methods=['GET' , 'POST'])
 def video():
     return render_template('video.html')
