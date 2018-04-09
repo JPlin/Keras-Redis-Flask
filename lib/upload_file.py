@@ -1,5 +1,5 @@
 import os
-import store as S3_lib
+from . import store as S3_lib
 
 class uploadfile():
     def __init__(self, name, type=None, size=None, not_allowed_msg=''):
@@ -9,6 +9,7 @@ class uploadfile():
         self.not_allowed_msg = not_allowed_msg
         self.url = S3_lib.get_url('parsing-img' , name)
         self.thumbnail_url = S3_lib.get_url('parsing-thumbnail' , 'tumb_' + name)
+        self.parsed_url = S3_lib.get_url('parsing-result' , 'parsed_' + name)
         self.delete_url = "delete/%s" % name
         self.delete_type = "DELETE"
 
@@ -31,6 +32,7 @@ class uploadfile():
                         "size": self.size, 
                         "url": self.url, 
                         "thumbnailUrl": self.thumbnail_url,
+                        "parsedUrl": self.parsed_url,
                         "deleteUrl": self.delete_url, 
                         "deleteType": self.delete_type,}
             
@@ -56,6 +58,7 @@ class uploadfile():
                     "size": self.size, 
                     "url": self.url, 
                     "thumbnailUrl": self.thumbnail_url,
+                    "parsedUrl": self.parsed_url,
                     "deleteUrl": self.delete_url, 
                     "deleteType": self.delete_type,}
         
@@ -65,5 +68,6 @@ class uploadfile():
                     "size": self.size, 
                     "url": self.url, 
                     "thumbnailUrl": self.thumbnail_url,
+                    "parsedUrl": self.parsed_url,
                     "deleteUrl": self.delete_url, 
                     "deleteType": self.delete_type,}

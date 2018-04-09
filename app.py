@@ -9,6 +9,7 @@ import simplejson
 import traceback
 import redis
 from threading import Thread
+import skimage.io as sio
 from PIL import Image
 import numpy as np
 import base64
@@ -29,6 +30,7 @@ from lib import tool
 from lib.upload_file import uploadfile
 from lib import store as S3_lib
 from Classifier import Classifier
+from Parser import Parser
 import settings
 
 app = Flask(__name__)
@@ -58,7 +60,6 @@ def upload():
                 uploaded_file_path = os.path.join(
                     app.config['UPLOAD_FOLDER'], filename)
                 files.save(uploaded_file_path)
-                S3_lib.s3_upload_file(s3 , settings.IMAGE_BUCKET , filename ,    app.config['UPLOAD_FOLDER'] + filename)
 
                 # classify the image
                 im = Image.open(uploaded_file_path)
@@ -66,33 +67,58 @@ def upload():
                 # predict the score
                 image = image.copy(order="C")
 
-                k = str(uuid.uuid4())
-                d = {"id": k, "image": tool.base64_encode_image(image)}
-                settings.db.rpush(settings.C_IMAGE_QUEUE, json.dumps(d))
-                print('push image : ', k)
+                if settings.USE_CLASSIFIER:
+                    k = str(uuid.uuid4())
+                    d = {"id": k, "image": tool.base64_encode_image(image)}
+                    settings.db.rpush(settings.C_IMAGE_QUEUE, json.dumps(d))
+                    print('push image in classifier queue: ', k)
 
-                while True:
-                    output = settings.db.get(k)
+                    while True:
+                        output = settings.db.get(k)
+                        if output is not None:
+                            output = output.decode("utf-8")
+                            score = json.loads(output)
+                            print('get result :', k)
+                            settings.db.delete(k)
+                            break
+                        time.sleep(settings.CLIENT_SLEEP)
 
-                    if output is not None:
-                        output = output.decode("utf-8")
-                        score = json.loads(output)
-                        print('get result :', k)
-                        settings.db.delete(k)
-                        break
+                    S3_lib.s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')
+                    f = open(app.config['UPLOAD_FOLDER'] + 'score.json', 'r')
+                    model = json.load(f)
+                    f.close()
+                    model[filename] = score
+                    f = open(app.config['UPLOAD_FOLDER'] + 'score.json' , 'w')
+                    f.write(json.dumps(model))
+                    f.close()
+                    S3_lib.s3_upload_file(s3 , settings.OTHER_BUCKET , 'score.json' ,    app.config['UPLOAD_FOLDER'] + 'score.json')
+                
+                if settings.USE_PARSER:
+                    image = Parser.prepare_image(im , (settings.P_IMAGE_HEIGHT, settings.P_IMAGE_WIDTH))
+                    k = str(uuid.uuid4())
+                    d = {"id": k, "image": tool.base64_encode_image(image)}
+                    settings.db.rpush(settings.P_IMAGE_QUEUE, json.dumps(d))
+                    print('push image in parser queue: ', k)
 
-                    time.sleep(settings.CLIENT_SLEEP)
+                    while True:
+                        output = settings.db.get(k)
+                        if output is not None:
+                            output = output.decode("utf-8")
+                            result = json.loads(output)
+                            print('get result :', k)
+                            settings.db.delete(k)
+                            break
+                        time.sleep(settings.CLIENT_SLEEP)
+                    
+                    parsed_image_string = result['image']
+                    parsed_image = tool.base64_decode_image(
+                                    parsed_image_string , 
+                                    dtype = np.uint8 ,
+                                    shape = (settings.P_IMAGE_HEIGHT, settings.P_IMAGE_WIDTH, settings.P_IMAGE_CHANS))
+                    sio.imsave(os.path.join(app.config['UPLOAD_FOLDER'], 'parsed_'+filename) , parsed_image)
+                    S3_lib.s3_upload_file(s3 , settings.RESULT_BUCKET , 'parsed_'+filename , app.config['UPLOAD_FOLDER'] + 'parsed_'+ filename)
 
-                S3_lib.s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')
-                f = open(app.config['UPLOAD_FOLDER'] + 'score.json', 'r')
-                model = json.load(f)
-                f.close()
-                model[filename] = score
-                f = open(app.config['UPLOAD_FOLDER'] + 'score.json' , 'w')
-                f.write(json.dumps(model))
-                f.close()
-                S3_lib.s3_upload_file(s3 , settings.OTHER_BUCKET , 'score.json' ,    app.config['UPLOAD_FOLDER'] + 'score.json')                
-
+                S3_lib.s3_upload_file(s3 , settings.IMAGE_BUCKET , filename ,    app.config['UPLOAD_FOLDER'] + filename)
                 # create thumbnail after saving
                 if mime_type.startswith('image'):
                     tool.create_thumbnail(
@@ -134,7 +160,7 @@ def delete(filename):
     S3_lib.s3_delete_file(s3 , settings.IMAGE_BUCKET , filename)
     print(f'delete {file_s3_path}')
     S3_lib.s3_delete_file(s3 , settings.THUMBNAIL_BUCKET , 'tumb_'+filename)
-    print(f'delete{file_s3_tumb_path}')
+    S3_lib.s3_delete_file(s3 , settings.RESULT_BUCKET , 'parsed_'+filename)  
     return simplejson.dumps({filename: 'True'})
     #except:
     #    return simplejson.dumps({filename: 'False'})
@@ -157,33 +183,31 @@ def index():
 
 @app.route('/gallary' , methods=['GET' , 'POST'])
 def gallary():
-    try:
-        print('i am ok 0')
-        S3_lib.s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')        
-        f = open(app.config['UPLOAD_FOLDER'] + 'score.json' , 'r')
-        print('i am fucked')
-        scores = json.load(f)
-        f.close()
-        print('i am ok 1')
-        # files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
-        # os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
-        files = [f for f in S3_lib.get_listfiles(s3 ,settings.IMAGE_BUCKET) if f[0] not in settings.IGNORED_FILES]
-
-        file_display = []
-        file_score = {}
-        print('i am ok 2')
-        for name , size in files:
-            file_saved = uploadfile(name=name, size=size)
-            print(file_saved.get_file())
-            file_display.append(file_saved.get_file())
-            score_string = ""
+    #try:
+    S3_lib.s3_down_file(s3 , settings.OTHER_BUCKET , 'score.json' ,  app.config['UPLOAD_FOLDER']   + 'score.json')        
+    f = open(app.config['UPLOAD_FOLDER'] + 'score.json' , 'r')
+    scores = json.load(f)
+    f.close()
+    # files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(
+    # os.path.join(app.config['UPLOAD_FOLDER'], f)) and f not in settings.IGNORED_FILES]
+    files = [f for f in S3_lib.get_listfiles(s3 ,settings.IMAGE_BUCKET) if f[0] not in settings.IGNORED_FILES]
+    parsed_files = [f[0] for f in S3_lib.get_listfiles(s3 ,settings.RESULT_BUCKET) if f[0] not in settings.IGNORED_FILES]
+    file_display = []
+    file_score = {}
+    for name , size in files:
+        file_saved = uploadfile(name=name, size=size)
+        if 'parsed_' + name not in parsed_files:
+            file_saved.parsed_url = ""
+        print(file_saved.get_file())
+        file_display.append(file_saved.get_file())
+        score_string = ""
+        if name in scores:
             for i, score in enumerate(scores[name]):
                 score_string += "{}.{} : {:.4f}% </br>".format(i+1 , score['label'] , score['probability'] * 100)
-            file_score[name] = score_string
-        print('i am ok 3')
-        return render_template('gallary.html' , images = file_display , scores = file_score)
-    except Exception as e:
-        print(e)
+        file_score[name] = score_string
+    return render_template('gallary.html' , images = file_display , scores = file_score)
+    #except Exception as e:
+    #    print(e)
 
 @app.route('/video' , methods=['GET' , 'POST'])
 def video():
@@ -246,7 +270,56 @@ def classifier_predict():
 
 @app.route("/parsing", methods=["POST"])
 def parser_predict():
-    pass
+    # ensure an image was properly uploaded to our endpoint
+    if flask.request.method == "POST":
+        if flask.request.files.get("image"):
+            data = {"success": False}
+            # read the image in PIL format and prepare it for
+            # classification
+            image = flask.request.files["image"].read()
+            # initialize the data dictionary that will be returned from the view
+            image = Image.open(io.BytesIO(image))
+            image = Parser.prepare_image(
+                image, (settings.P_IMAGE_WIDTH, settings.P_IMAGE_HEIGHT))
+
+            # ensure our NumPy array is C-contiguous as well,
+            # otherwise we won't be able to serialize it
+            image = image.copy(order="C")
+
+            # generate an ID for the classification then add the
+            # classification ID + image to the queue
+            k = str(uuid.uuid4())
+            d = {"id": k, "image": tool.base64_encode_image(image)}
+            settings.db.rpush(settings.P_IMAGE_QUEUE, json.dumps(d))
+            print('push image : ', k)
+
+            # keep looping until our model server returns the output
+            # predictions
+            while True:
+                # attempt to grab the output predictions
+                output = settings.db.get(k)
+
+                # check to see if our model has classified the input
+                # image
+                if output is not None:
+                    # add the output predictions to our data
+                    # dictionary so we can return it to the client
+                    data["predictions"] = json.loads(output.decode("utf-8"))
+                    print('get result :', k)
+                    # delete the result from the database and break
+                    # from the polling loop
+                    settings.db.delete(k)
+                    break
+
+                # sleep for a small amount to give the model a chance
+                # to classify the input image
+                time.sleep(settings.CLIENT_SLEEP)
+
+            # indicate that the request was a success
+            data["success"] = True
+
+    # return the data dictionary as a JSON response
+    return flask.jsonify(data)
 
 
 if __name__ == '__main__':

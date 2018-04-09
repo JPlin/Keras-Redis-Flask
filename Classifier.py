@@ -109,6 +109,6 @@ class Classifier:
 
 # if this is the main thread of execution start the model server process
 if __name__ == '__main__':
-    print("* Starting model service...")
+    print("* Starting classifier model service...")
     classfier = Classifier(settings.db)
     classfier.batch_image_classify()

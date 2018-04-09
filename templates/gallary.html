@@ -23,7 +23,7 @@
             <div class="row">
                 {% for image in images %}
                 <div class="col-sm-3 col-md-2 "  >
-                    <a class="lightbox zebra_tips1" title="{{ scores[image.name] }}" href="{{ image.url }}">
+                    <a class="lightbox zebra_tips1" title="{{ scores[image.name] }}" href="{{ image.parsedUrl if image.parsedUrl != "" else image.url}}">
                         <img src="{{ image.thumbnailUrl }}" alt="{{ image.name }}">
                     </a>
                 </div>

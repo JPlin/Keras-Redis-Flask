@@ -1,0 +1,98 @@
+# network architecture
+architecture: arc_eccv2018
+
+box_pred_method: regress_segbox
+
+backbone: resnet50fpn
+box_from: P2
+box_neck_conv_num: 2
+use_soft_l1_loss: false
+
+# network super parameters
+images_per_gpu: 4
+image_size: 512
+
+dropout_rate: 0.3
+pool_size: 56
+conv_num: 2
+deconv_num: 1
+
+learning_rate_base: 1.0
+learning_momentum: 0.9
+learning_rate_decay_factor: 0.9
+weight_decay: 0.0001
+validation_steps: 100
+steps_per_epoch: 1000
+
+stages:
+  - mode: training
+    train_datasets: [multipie_train_no_mask]
+    val_datasets: [multipie_test , multipie_train_no_mask]
+    layers: !!str "^(?!mrcnn_).*" # all except the mask heads
+    epoch: 20
+    lr_ratio: 0.1
+  - mode: training
+    train_datasets: [multipie_train]
+    val_datasets: [multipie_test , multipie_train]
+    layers: !!str ".*" # all
+    epoch: 50
+    lr_ratio: 0.1
+
+# useful dictionary
+class_names:
+  - [body]
+  - [hair]
+  - [face, lb, rb, le, re, nose, mouth]
+  - [lr]
+  - [rr]
+  - [lb]
+  - [rb]
+  - [le]
+  - [re]
+  - [nose]
+  - [mouth]
+
+heads:
+  - [0]
+  - [1]
+  - [2]
+  - [3]
+  - [4]
+  - [5]
+  - [6]
+  - [7]
+  - [8]
+  - [9]
+  - [10]
+
+landmark_box_paddings448:
+  face: [-160, -30, 40, 30]
+  lb: [-15, -15, 20, 15]
+  rb: [-15, -15, 20, 15]
+  le: [-15, -15, 15, 15]
+  re: [-15, -15, 15, 15]
+  nose: [-15, -20, 15, 20]
+  mouth: [-20, -20, 50, 20] # more larger
+  ulip: [-20, -20, 50, 20] # more larger
+  llip: [-20, -20, 50, 20] # more larger
+  imouth: [-20, -20, 50, 20] # more larger
+  
+head_box_padding_ratio: 0.1
+
+
+eval_classes:
+  body: [1]
+  hair: [2]
+  face: [3]
+  lr: [4]
+  rr: [5]
+  lb: [6]
+  rb: [7]
+  le: [8]
+  re: [9]
+  nose: [10]
+  mouth: [11]
+  ears: [4, 5]
+  brows: [6, 7]
+  eyes: [8, 9]
+  overall: [6, 7, 8, 9, 10, 11]
