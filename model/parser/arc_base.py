@@ -31,9 +31,6 @@ import scipy.io as scio
 from scipy.misc import imresize
 import yaml
 import time
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import matplotlib.lines as lines
 
 import utils
 from data_generator import data_generator, multi_data_generator, CachedDataSequence
@@ -909,8 +906,9 @@ class ArcBase():
                          np.min(blended_alphas_in_original))
 
                 if gui:
-                    plt.imshow(blended_alphas)
-                    plt.show()
+                    #plt.imshow(blended_alphas)
+                    #plt.show()
+                    pass
 
                 if save_images:
                     im_fname = os.path.basename(
