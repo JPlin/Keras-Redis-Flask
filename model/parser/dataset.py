@@ -11,7 +11,6 @@ import socket
 import numpy as np
 from scipy.io import loadmat, savemat
 from skimage import io, color, draw, exposure, transform
-from matplotlib import pyplot as plt, patches as patches
 
 import utils
 import paths
@@ -1565,18 +1564,7 @@ def _get_min_helen_paddings():
 
 
 def _multipie_alphas():
-    options = yaml.load(
-        open(os.path.join(ROOT_DIR, 'options', 'ds123_matting_v1.yaml')))
-    ds = MultiPieDataset(options, no_augmented_samples=True,
-                         from_to_ratio=[0, 0.1])
-    inds = ds.image_ids
-    random.shuffle(inds)
-    for i in inds:
-        im, _ = ds.load_image(i)
-        alphas, _ = ds.load_body_face_hair_acc_alphas(i)
-        blended = utils.blend_alphas(im, alphas)
-        plt.imshow(blended)
-        plt.show()
+    pass
 
 # def _compute_mean_head_boxes():
 #     options = yaml.load(
@@ -1586,66 +1574,66 @@ def _multipie_alphas():
 #         (pts, _)
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    '100040721_1_00_img.png'
+    # '100040721_1_00_img.png'
 
-    options = yaml.load(
-        open(os.path.join(ROOT_DIR, 'options', 'multipie_hairmatte.yaml')))
-    options['image_size'] = 512
-    # ds = get_dataset('helen_smith_train_y', options)
+    # options = yaml.load(
+    #     open(os.path.join(ROOT_DIR, 'options', 'multipie_hairmatte.yaml')))
+    # options['image_size'] = 512
+    # # ds = get_dataset('helen_smith_train_y', options)
 
-    # ds = HelenSmithDataset(
-    #     options, no_augmented_samples=True,
-    #     adjust_gamma=False, grey_ratio=0,
-    #     list_path=os.path.join(
-    #         paths.dataset_root(),
-    #         'Parsing', 'Helen', 'example_aug_names.txt'),
-    #     aug_flip=False, aug_transform=False, no_occ=True, aug_larger=False)
+    # # ds = HelenSmithDataset(
+    # #     options, no_augmented_samples=True,
+    # #     adjust_gamma=False, grey_ratio=0,
+    # #     list_path=os.path.join(
+    # #         paths.dataset_root(),
+    # #         'Parsing', 'Helen', 'example_aug_names.txt'),
+    # #     aug_flip=False, aug_transform=False, no_occ=True, aug_larger=False)
 
-    ds = get_dataset('multipie_train', options)
-    print('what')
-    inds = list(range(ds.num_images))
-    # random.shuffle(inds)
-    for i in inds:
-        # if not '1000' in ds.source_image_link(i):
-            # continue
-        print(ds.source_image_link(i))
-        (im, _), (molded_image, _), (masks, _) = ds.load_data_as_list(
-            i, ['image', 'molded_image', 'masks'])
-        print(np.unique(im), np.unique(molded_image), np.unique(masks))
-        # print(np.max(im), np.max(im), np.max(masks))
-        blended = utils.blend_labels(im, utils.flatten_masks(masks))
-        blended = np.concatenate([im / 255.0, blended], axis=1)
+    # ds = get_dataset('multipie_train', options)
+    # print('what')
+    # inds = list(range(ds.num_images))
+    # # random.shuffle(inds)
+    # for i in inds:
+    #     # if not '1000' in ds.source_image_link(i):
+    #         # continue
+    #     print(ds.source_image_link(i))
+    #     (im, _), (molded_image, _), (masks, _) = ds.load_data_as_list(
+    #         i, ['image', 'molded_image', 'masks'])
+    #     print(np.unique(im), np.unique(molded_image), np.unique(masks))
+    #     # print(np.max(im), np.max(im), np.max(masks))
+    #     blended = utils.blend_labels(im, utils.flatten_masks(masks))
+    #     blended = np.concatenate([im / 255.0, blended], axis=1)
 
-        # (im, _), (pts, _) = ds.load_data_as_list(
-        #     i, ['image', 'molded_landmark68_pts'])
-        # blended = im / 255.0
+        # # (im, _), (pts, _) = ds.load_data_as_list(
+        # #     i, ['image', 'molded_landmark68_pts'])
+        # # blended = im / 255.0
 
-        fig, ax = plt.subplots(1)
-        ax.axis('off')
-        # for i in range(pts.shape[0]):
-        #     # pts
-        #     x, y = pts[i] * np.array([im.shape[0], im.shape[1]], np.float32)
-        #     p = patches.Circle((x, y), radius=1.0, edgecolor='red')
+        # fig, ax = plt.subplots(1)
+        # ax.axis('off')
+        # # for i in range(pts.shape[0]):
+        # #     # pts
+        # #     x, y = pts[i] * np.array([im.shape[0], im.shape[1]], np.float32)
+        # #     p = patches.Circle((x, y), radius=1.0, edgecolor='red')
+        # #     ax.add_patch(p)
+        # #     ax.text(x, y, str(i), fontsize=7, color='red')
+        # '''
+        # for i in range(boxes.shape[0]):
+        #     # boxes
+        #     y1, x1, y2, x2 = boxes[i] * ds.im_size
+        #     x1 += ds.im_size
+        #     x2 += ds.im_size
+        #     p = patches.Rectangle(
+        #         (x1, y1),
+        #         x2 - x1,
+        #         y2 - y1,
+        #         linewidth=2,
+        #         alpha=0.7,
+        #         linestyle="dashed",
+        #         edgecolor='blue',
+        #         facecolor='none')
         #     ax.add_patch(p)
-        #     ax.text(x, y, str(i), fontsize=7, color='red')
-        '''
-        for i in range(boxes.shape[0]):
-            # boxes
-            y1, x1, y2, x2 = boxes[i] * ds.im_size
-            x1 += ds.im_size
-            x2 += ds.im_size
-            p = patches.Rectangle(
-                (x1, y1),
-                x2 - x1,
-                y2 - y1,
-                linewidth=2,
-                alpha=0.7,
-                linestyle="dashed",
-                edgecolor='blue',
-                facecolor='none')
-            ax.add_patch(p)
-        '''
-        ax.imshow(blended)
-        plt.show()
+        # '''
+        # ax.imshow(blended)
+        # plt.show()
