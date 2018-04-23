@@ -8,13 +8,18 @@ import time
 
 # initialize the Keras REST API endpoint URL along with the input
 # image path
-KERAS_REST_API_URL = "http://localhost:9191/classify"
-IMAGE_PATH = "data/jemma.png"
+#KERAS_REST_API_URL = "http://localhost:9191/classify"
+#KERAS_REST_API_URL = "http://localhost:9191/parsing"
+KERAS_REST_API_URL = "http://localhost:9191/parsing"
+
+IMAGE_PATH = "static/img/test.png"
 
 # initialize the number of requests for the stress test along with
 # the sleep amount between requests
-NUM_REQUESTS = 500
+NUM_REQUESTS = 32
 SLEEP_COUNT = 0.05
+
+start_time = time.time()
 
 
 def call_predict_endpoint(n):
@@ -27,11 +32,13 @@ def call_predict_endpoint(n):
 
     # ensure the request was sucessful
     if r["success"]:
-        print("[INFO] thread {} OK".format(n))
+        print("[INFO] thread {} OK , time {}".format(
+            n, time.time() - start_time))
 
     # otherwise, the request failed
     else:
-        print("[INFO] thread {} FAILED".format(n))
+        print("[INFO] thread {} FAILED , time {}".format(
+            n, time.time() - start_time))
 
 
 # loop over the number of threads

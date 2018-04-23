@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 
 # initialize the Keras REST API endpoint URL along with the input
 # image path
+# KERAS_REST_API_URL = "https://paringweb.herokuapp.com/parsing"
+# KERAS_REST_API_URL = "http://paringweb.herokuapp.com/classify"
 KERAS_REST_API_URL = "http://localhost:9191/parsing"
-#KERAS_REST_API_URL = "https://paringweb.herokuapp.com/classify"
 IMAGE_PATH = "static/img/13601661_1_00_img.png"
 
 # load the input image and construct the payload for the request
@@ -23,21 +24,21 @@ r = requests.post(KERAS_REST_API_URL, files=payload).json()
 # ensure the request was sucessful
 if r['success']:
     q = r['predictions']
-    a = np.frombuffer(base64.decodestring(q['image'].encode('utf-8')), dtype=np.uint8)
-    a = a.reshape((512,512,3))
+    a = np.frombuffer(base64.decodestring(
+        q['image'].encode('utf-8')), dtype=np.uint8)
+    a = a.reshape((512, 512, 3))
     plt.imshow(a)
     plt.show()
     input('Press any key')
 else:
     print("Request failed")
-'''
-if r["success"]:
-    # loop over the predictions and display them
-    for (i, result) in enumerate(r["predictions"]):
-        print("{}. {}: {:.4f}".format(i + 1, result["label"],
-                                      result["probability"]))
 
-# otherwise, the request failed
-else:
-    print("Request failed")
-'''
+# if r["success"]:
+#     # loop over the predictions and display them
+#     for (i, result) in enumerate(r["predictions"]):
+#         print("{}. {}: {:.4f}".format(i + 1, result["label"],
+#                                       result["probability"]))
+
+# # otherwise, the request failed
+# else:
+#     print("Request failed")
