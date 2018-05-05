@@ -16,7 +16,7 @@ IMAGE_PATH = "static/img/test.png"
 
 # initialize the number of requests for the stress test along with
 # the sleep amount between requests
-NUM_REQUESTS = 32
+NUM_REQUESTS = 4
 SLEEP_COUNT = 0.05
 
 start_time = time.time()

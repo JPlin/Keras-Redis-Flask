@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # KERAS_REST_API_URL = "https://paringweb.herokuapp.com/parsing"
 # KERAS_REST_API_URL = "http://paringweb.herokuapp.com/classify"
 KERAS_REST_API_URL = "http://localhost:9191/parsing"
-IMAGE_PATH = "static/img/13601661_1_00_img.png"
+IMAGE_PATH = "static/img/test.png"
 
 # load the input image and construct the payload for the request
 image = open(IMAGE_PATH, "rb").read()
