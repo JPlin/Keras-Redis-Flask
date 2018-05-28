@@ -195,7 +195,6 @@ class Parser():
 # if this is the main thread of execution start the model server process
 if __name__ == '__main__':
     print("* Starting parser model service...")
-    #parser = Parser(settings.db)
-    parser = Parser(redis.from_url(settings.REDIS_URL))
+    parser = Parser(settings.db)
     parser.batch_image_parsing()
 

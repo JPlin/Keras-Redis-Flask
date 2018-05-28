@@ -1,14 +1,16 @@
-flask-file-uploader
+Keras + Redis + Flask
 ===================
 
 ## Description
-File Upload Script which built on Python Flask and [jQuery-File-Upload](https://github.com/blueimp/jQuery-File-Upload/) with multiple file selection, drag&amp;drop support, progress bars, validation and preview images, audio and video for jQuery.
+Impletemenation of a website and RESTful API for deep learning model. Using message queue to achieve scalable dl model service.
+Web Tech: Flask
+DataBase Tech: Redis
+DL Tech: Keras
+
 
 
 ## Setup
-- Install system package. See the `system_package.txt` file. (*Unix)
-
-- Create virtual enviroment (use `virtualenv`) and activate it.
+- download deep learning model to proper dir(model/..//..)
 
 - Then install python packages:  
 ```
@@ -22,4 +24,3 @@ $ python app.py
 ```
 
 - Go to http://127.0.0.1:9191
-
