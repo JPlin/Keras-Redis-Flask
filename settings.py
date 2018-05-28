@@ -6,7 +6,7 @@ USE_CLASSIFIER = False
 USE_PARSER = True
 # initialize --- app config ---
 SECRET_KEY = '123456'
-TEMP_FOLDER = os.path.join('/tmp/')
+TEMP_FOLDER = os.path.join('tmp/')
 UPLOAD_FOLDER = os.path.join(PROJECT_PATH, '/tmp/')
 THUMBNAIL_FOLDER = os.path.join(PROJECT_PATH, '/tmp/')
 MAX_CONTENT_LENGTH = 50 * 1024 * 1024
@@ -26,10 +26,9 @@ REDIS_URL = 'redis://h:p90abd37d0c5ea5a94cf2f364d7b099b4386d10975a5b2e6f0033cea3
 REDIS_HOST = "localhost"
 REDIS_PORT = "6379"
 REDIS_DB = 0
-# db = redis.StrictRedis(host=REDIS_HOST,
-#                       port=REDIS_PORT, db=REDIS_DB)
-#db = redis.from_url(os.environ.get("REDIS_URL"))
-db = redis.from_url(REDIS_URL)
+db = redis.StrictRedis(host=REDIS_HOST,
+                       port=REDIS_PORT, db=REDIS_DB)
+#db = redis.from_url(REDIS_URL)
 
 # initialize constants used to --- control classifier image spatial dimensions and data type ---
 C_IMAGE_WIDTH = 224
@@ -52,6 +51,6 @@ P_YAML_PATH = os.path.join(PROJECT_PATH, 'model/parser/multipie_jinpli.yaml')
 # initialize constants used for -- server queueing ---
 C_IMAGE_QUEUE = "classifier_image_queue"
 P_IMAGE_QUEUE = "parsing_image_queue"
-BATCH_SIZE = 32
+BATCH_SIZE = 4
 SERVER_SLEEP = 0.05
 CLIENT_SLEEP = 0.05
